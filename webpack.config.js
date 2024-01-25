@@ -133,35 +133,124 @@ You can specify loaders in your Webpack configuration file (webpack.config.js) i
 
 /*------------------------------------------------------------------------------------------------------------------------------------*/
 
-
 /*
 
 
 /*
 What is html-webpack-plugin?
-
+   The html-webpack-plugin automatically injects the correct script tags for your application's JavaScript files into the HTML file. This means you don't have to manually update the script tags in your index.html file every time you rebuild your application, even if the file names of your JavaScript bundles change. This can be particularly useful when using hashing, where file names change with every build. The plugin will generate a new index.html file in the output directory (like dist) and will always reference the latest
 */
 
 
 const path=require('path')
+const HTMLWebpackPlugin=require('html-webpack-plugin')
 module.exports={
     mode:'development',
     entry:path.resolve(__dirname,'src/index.js'), //entry point to get our initial js file for building, since all files are linked from here
     output:{
         path:path.resolve(__dirname,'dist'), //this will be the folder, where the single bundled script will be placed
-        filename:'bundle.js'  //name of our bundled script
+        filename:'[name][contenthash].js' , //name of our bundled script
+        clean:true,   //clean up the previous unused bundles that was generated during multiple builds
+        assetModuleFilename:'[name][ext]'
     },
+    devtool:"source-map", //helps in debugging
+    devServer:{
+        static:{
+            directory:path.resolve(__dirname,'dist')
+
+        },
+        port:3000,
+        open:true,
+        hot:true,
+        compress:true,
+        historyApiFallback:true
+    },
+    /*
+
+        static: { directory: path.resolve(__dirname,'dist') }: This tells the server where to serve static files from. In this case, it's serving files from the 'dist' directory in your project root.
+
+
+
+        port: 3000: This sets the port on which the server will run. In this case, it's port 3000.
+
+
+
+        open: true: This tells the server to automatically open the application in your default web browser when you start the server.
+
+
+
+        hot: true: This enables Hot Module Replacement (HMR). With HMR, the server will automatically update your running application in the browser when you make changes to your source code, without requiring a full page refresh.
+
+
+
+        compress: true: This enables gzip compression for everything served by the server. This can help to speed up the loading of your application in the browser.
+
+
+
+        historyApiFallback: true: This is a setting for Single Page Applications (SPA). It redirects all server requests to index.html. This allows the routing to be handled by your JavaScript code, which is necessary for SPAs that use the HTML5 History API for routing.
+    */
     module:{
         rules:[
             {
                 test:/\.scss$/, //any file that ends with this extension
-                use:[//use this loaders
+                use:[//use these loaders
                     'style-loader',
                     'css-loader',
                     'sass-loader'
 
                 ]  
+            },
+
+            /*
+            
+            test: /\.js$/: This tells webpack to apply this rule to files that end in .js. The /\.js$/ is a regular expression that matches any filename that ends with .js.
+
+
+
+            exclude: /node_modules/: This tells webpack to ignore any files within the node_modules directory. This is typically done for performance reasons, as you usually don't want to apply your loaders to the libraries you're using.
+
+
+
+            use: { loader: 'babel-loader', options: { presets: ['@babel/preset-env'] } }: This tells webpack to use babel-loader to process the JavaScript files. babel-loader is a webpack loader that uses Babel to transpile your JavaScript code. The options object is passed to Babel. The presets option tells Babel to use the @babel/preset-env preset, which is a smart preset that allows you to use the latest JavaScript without needing to micromanage which syntax transforms (and optionally, browser polyfills) are needed by your target environment(s). This preset includes the features of ECMAScript 2015+ (ES6+) and will automatically determine the Babel plugins you need based on your supported environments.
+
+ */
+            {
+                test:/\.js$/,
+                exclude:/node_modules/,
+                use:{
+                    loader:'babel-loader',
+                    options:{
+                        presets:['@babel/preset-env']
+                    }
+                }
+            },
+            {
+                test:/\.(png|svg|jpg|jpeg|gif)$/i,  //loader for using images
+                type:'asset/resource'
             }
         ]
-    }
+    },
+    plugins:[
+        new HTMLWebpackPlugin({
+            title:'Webpack App', //This sets the title of the HTML file that will be created.
+            filename:"index.html",//: This is the name of the HTML file that will be created in your output directory
+            template:"src/template.html"//This is the path to a template HTML file that the plugin will use as a base for creating the new HTML file. The plugin will automatically inject script tags for your webpack bundles into this template.
+
+
+            /*
+            So, in summary, this configuration will create a new HTML file named 'index.html' in your output directory, using 'src/template.html' as a template and setting the title of the HTML file to 'Webpack'. The new HTML file will include script tags that reference your webpack bundles.
+            */
+        })
+    ]
 }
+
+/* 
+ "dev": "webpack serve" ---->In package.json,
+ The webpack serve command is used to start the webpack's development server. This server automatically updates and refreshes your application in the browser whenever you make changes to your source code files. This feature is known as "hot reloading".
+
+If you don't use webpack serve (or a similar tool), you would indeed need to manually rebuild your application and refresh your browser every time you make a change to your code, which can be time-consuming and inefficient during development.
+*/
+
+/*
+ Babel is a popular JavaScript transpiler that allows developers to write code using the latest JavaScript features, even those not yet fully supported by all browsers. Babel then transforms this code into a backwards-compatible version that can be run by older browsers. 
+*/
